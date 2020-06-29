@@ -86,7 +86,7 @@ async function transformItem(inputItem: Parser.Item): Promise<ItemOptions> {
 
     let fullText = inputItem.content;
     try {
-        fullText = await parseContent(inputItem.link);
+        fullText = await parseContent(inputItem.link, inputItem);
     } catch (e) {
         // TODO: Better error handling
     }
@@ -123,7 +123,7 @@ function getLinkTransformer(baseUrl: string): sanitizeHtml.Transformer {
     };
 }
 
-async function parseContent(url: string): Promise<string> {
+async function parseContent(url: string, context: Parser.Item): Promise<string> {
     const parsed = await Mercury.parse(url);
     const transformer = getLinkTransformer(url);
 
@@ -135,6 +135,15 @@ async function parseContent(url: string): Promise<string> {
             a: transformer,
         },
     });
+
+    // Special treatment for HN
+    // FIXME: Clean me up
+    if (context.comments) {
+        const url = new URL(context.comments);
+        if (url.host === 'news.ycombinator.com') {
+            sanitized = `<p><a href="${context.comments}">Discussion on Hacker News</a></p>` + sanitized;
+        }
+    }
 
     return sanitized;
 }
