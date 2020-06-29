@@ -37,23 +37,11 @@ The application is easily configurable with environment variables.
 
 ## Usage
 
-We have to define two query parameters:
+Simply prepend the proxy server to any feed URL, like:
 
-| Identifier | Description                            |
-|------------|----------------------------------------|
-| feed       | The original feed URL to proxy.        |
-| selectors  | URL-encoded string[] of CSS-selectors. |
-
-#### Example:
-
-- Feed URL: `http://rss.sueddeutsche.de/rss/Topthemen`
-- Query Selectors of relevant HTML elements: `["figure.asset-image", "section.body > p, section.body > h3"]`
-- URL-encoded selectors using [this](https://www.urlencoder.org/) website: `%5B%22figure.asset-image%22%2C%20%22section.body%20%3E%20p%2C%20section.body%20%3E%20h3%22%5D`
-- The URL we are adding to our feed reader is: `http://host:post/?feed=http://rss.sueddeutsche.de/rss/Topthemen&selectors=%5B%22figure.asset-image%22%2C%20%22section.body%20%3E%20p%2C%20section.body%20%3E%20h3%22%5D`
-- We are getting full-text RSS content for this feed. 🔥
-
-A collection of selectors can be found on the [wiki page](https://github.com/Kombustor/rss-fulltext-proxy/wiki/Selectors-Collection).
-If you create or improve a selector, feel free to open a pull request to add it to the wiki page.
+```
+http://localhost:3000/https://hnrss.org/newest?points=100
+```
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.

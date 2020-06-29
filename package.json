@@ -16,27 +16,29 @@
     "dev": "concurrently \"npm:build:watch\" \"npm:start:node\""
   },
   "dependencies": {
-    "cheerio": "^1.0.0-rc.3",
-    "dotenv": "^8.0.0",
+    "@postlight/mercury-parser": "^2.2.0",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "redis": "^2.8.0",
-    "request": "^2.88.0",
-    "request-promise": "^4.2.4",
+    "request": "^2.88.2",
     "rss": "^1.2.2",
-    "rss-parser": "^3.7.2"
+    "rss-parser": "^3.8.0",
+    "sanitize-html": "^1.27.0"
   },
   "devDependencies": {
-    "@types/cheerio": "^0.22.12",
+    "@types/cheerio": "^0.22.18",
     "@types/dotenv": "^6.1.1",
-    "@types/express": "^4.17.0",
-    "@types/node": "^12.6.6",
-    "@types/redis": "^2.8.13",
-    "@types/request": "^2.48.2",
-    "@types/request-promise": "^4.1.44",
+    "@types/express": "^4.17.6",
+    "@types/node": "^12.12.47",
+    "@types/redis": "^2.8.22",
+    "@types/request": "^2.48.5",
+    "@types/request-promise": "^4.1.46",
     "@types/rss": "0.0.28",
-    "@types/xml2js": "^0.4.4",
-    "concurrently": "^4.1.1",
-    "nodemon": "^1.19.1",
-    "typescript": "^3.5.3"
+    "@types/xml2js": "^0.4.5",
+    "@types/postlight__mercury-parser": "^2.2.2",
+    "@types/sanitize-html": "^1.23.2",
+    "concurrently": "^4.1.2",
+    "nodemon": "^1.19.4",
+    "typescript": "^3.9.5"
   }
 }

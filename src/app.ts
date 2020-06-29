@@ -1,9 +1,10 @@
-import cheerio from 'cheerio';
 import express from "express";
-import request from 'request-promise';
+import Mercury from "@postlight/mercury-parser";
 import RSS from "rss";
 import Parser from "rss-parser";
 import redis from "redis";
+import sanitizeHtml from "sanitize-html";
+import { URL } from 'url';
 import { ItemOptions } from './types/item-options';
 const {promisify} = require('util');
 
@@ -22,22 +23,11 @@ const redisSetAsync = promisify(redisClient.set).bind(redisClient);
 // Express configuration
 app.set("port", process.env.PORT || 3000);
 
-// Routes
-app.get('/', async (req, res) => {
-    const { feed, selectors } = req.query;
-
-    // Check if params are set
-    if (!feed) {
-        return res.status(400).send('Error: Missing `feed` query param.')
-    }
-    if (!selectors) {
-        return res.status(400).send('Error: Missing `selectors` query param.')
-    }
+// Proxy
+app.use(async (req, res) => {
+    const feed = req.url.substring(1);
 
     try {
-        // Parse html selectors from query-params
-        const htmlSelectors = JSON.parse(selectors)
-
         // Get the original feed
         let originalFeed;
         try {
@@ -54,7 +44,7 @@ app.get('/', async (req, res) => {
         const newFeed = new RSS(transformFeed(originalFeed))
 
         // Transform and add all items to the feed
-        const transformedItems = await transformItems(originalFeed.items, htmlSelectors);
+        const transformedItems = await transformItems(originalFeed.items);
         transformedItems.forEach((item) => {
             newFeed.item(item);
         })
@@ -80,11 +70,11 @@ function transformFeed(originalFeed: Parser.Output) {
     }
 }
 
-async function transformItems(input: Parser.Output["items"], selectors: string[]): Promise<ItemOptions[]> {
-    return await Promise.all(input.map(async (inputItem) => await transformItem(inputItem, selectors)));
+async function transformItems(input: Parser.Output["items"]): Promise<ItemOptions[]> {
+    return Promise.all(input.map(async (inputItem) => await transformItem(inputItem)));
 }
 
-async function transformItem(inputItem: Parser.Item, selectors: string[]): Promise<ItemOptions> {
+async function transformItem(inputItem: Parser.Item): Promise<ItemOptions> {
     // Selecting identifier
     const identifier = inputItem.guid || inputItem.link || inputItem.title;
 
@@ -94,9 +84,16 @@ async function transformItem(inputItem: Parser.Item, selectors: string[]): Promi
         return JSON.parse(cached);
     }
 
+    let fullText = inputItem.content;
+    try {
+        fullText = await parseContent(inputItem.link);
+    } catch (e) {
+        // TODO: Better error handling
+    }
+
     const result = {
         title: inputItem.title,
-        description: await parseContent(inputItem.link, selectors),
+        description: fullText,
         url: inputItem.link,
         guid: inputItem.guid,
         categories: inputItem.categories,
@@ -110,20 +107,36 @@ async function transformItem(inputItem: Parser.Item, selectors: string[]): Promi
     return result;
 }
 
-async function parseContent(url: string, selectors: string[]): Promise<string> {
-    // Load HTML
-    const html = await request(url);
+function getLinkTransformer(baseUrl: string): sanitizeHtml.Transformer {
+    return (tagName, attribs) => {
+        for (const attrib of ['href', 'src']) {
+            if (attribs[attrib]) {
+                const url = new URL(attribs[attrib], baseUrl);
+                attribs[attrib] = url.href;
+            }
+        }
 
-    // Pass HTML into cheerio
-    const $ = cheerio.load(html);
+        return {
+            tagName,
+            attribs,
+        };
+    };
+}
 
-    // Gather output html
-    let output = '';
-    for (let selector of selectors) {
-        output += $(selector);
-    }
+async function parseContent(url: string): Promise<string> {
+    const parsed = await Mercury.parse(url);
+    const transformer = getLinkTransformer(url);
 
-    return output;
+    let sanitized = sanitizeHtml(parsed.content, {
+        allowedTags: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'p', 'a', 'ul', 'ol', 'nl', 'li', 'b', 'i', 'strong', 'em', 'strike', 'abbr', 'code', 'hr', 'br', 'div', 'table', 'thead', 'caption', 'tbody', 'tr', 'th', 'td', 'pre', 'img'],
+        allowedClasses: {},
+        transformTags: {
+            img: transformer,
+            a: transformer,
+        },
+    });
+
+    return sanitized;
 }
 
 export default app;
